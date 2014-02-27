@@ -154,8 +154,8 @@ function ask(question, format, callback) {
   });
 }
 
-ask("Are you sure you wish to format " + device + " to UDF?", /.+/, function(answer) {
-  if (answer.toLowerCase() === "yes") {
+ask("Are you sure you wish to format " + device + " to UDF? You will lose all data? [yes/no]", /.+/, function(answer) {
+  if (answer.toLowerCase() === "yes" || answer.toLowerCase() === "y") {
     getDeviceSize(device, function(size) {
       console.log(size);
       var fmbr = generate_fmbr(size/sector_size, 255, 63);
