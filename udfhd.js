@@ -113,6 +113,19 @@ function getDeviceSize(device, callback) {
       callback(match[1]);
     });
   }
+  if (os.platform() === "windows") {
+    cproc.exec("wmic LOGICALDISK Get DeviceID,size", function(err, stdout, stderr) {
+      if (err != undefined || stderr != undefined) {
+        console.log(stderr);
+        console.log(err);
+        return;
+      }
+      var size = stdout.spl.trim();
+      var re = /.+, ([\d]+).+/;
+      var match = re.exec(size);
+      callback(match[1]);
+    });
+  }
 }
 
 function makeUDF(maxlba) {
@@ -121,6 +134,9 @@ function makeUDF(maxlba) {
   }
   if (udf.type === "newfs_udf") {
     cproc.exec(udf.path + " -b " + sector_size + " -m blk -t ow -s " + maxlba + " -r 2.01 -v " + label + " --enc utf8 " + device, finishOutput);
+  }
+  if (os.platform() === "windows") {
+    cproc.exec("format " + device + " /fs:udf /r:2.01 /x /v:" +  label)
   }
 }
 
