@@ -18,5 +18,6 @@
     "std": "*",
     "yargs": "*"
   },
-  "homepage": "https://github.com/Daegalus/udfhd"
+  "homepage": "https://github.com/Daegalus/udfhd",
+  "licenses": [{ "type": "MIT" }]
 }
