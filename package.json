@@ -3,7 +3,6 @@
   "description": "Create true cross-platform UDF usb and hard drives.",
   "version": "0.0.1",
   "bin": "./udfhd.js",
-  "private": true,
   "keywords": [
     "udf"
   ],
