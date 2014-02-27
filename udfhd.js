@@ -25,11 +25,14 @@ function chooseTool() {
       type: "mkudffs"
     };
   }
-  if (fs.existsSync("/sbin/newfs_udf")) {
+  else if (fs.existsSync("/sbin/newfs_udf")) {
     return {
       path: "/sbin/newfs_udf",
       type: "newfs_udf"
     };
+  }
+  else {
+    throw "Could not find a UDF tool.";
   }
 }
 
@@ -65,7 +68,7 @@ function encode_entry(begin_sect, size_sect, bootable, type, heads, sects) {
 
   res += encode_chs(begin_sect, heads, sects);
   res += std.pack("C", type);
-  res += encode_chs(begin_sect + size_sect - 1, heads, sects)
+  res += encode_chs(begin_sect + size_sect - 1, heads, sects);
   res += encode_lba(begin_sect);
   res += encode_lba(size_sect);
   return res;
@@ -85,7 +88,12 @@ function generate_fmbr(maxlba, heads, sects) {
 
 function getDeviceSize(device, callback) {
   if (os.platform() === "darwin") {
-    return cproc.exec("diskutil info " + device + " | grep \"Total Size:\"", function(err, stdout, stderr) {
+    cproc.exec("diskutil info " + device + " | grep \"Total Size:\"", function(err, stdout, stderr) {
+      if (err != undefined || stderr != undefined) {
+        console.log(stderr);
+        console.log(err);
+        return;
+      }
       var size = stdout.trim().split(":")[1].trim();
       var re = /.+\(([\d]+).+\).+/;
       var match = re.exec(size);
@@ -93,7 +101,12 @@ function getDeviceSize(device, callback) {
     });
   }
   if (os.platform() === "linux") {
-    return cproc.exec("fdisk -l | grep Disk | grep " + device, function(err, stdout, stderr) {
+    cproc.exec("fdisk -l | grep Disk | grep " + device, function(err, stdout, stderr) {
+      if (err != undefined || stderr != undefined) {
+        console.log(stderr);
+        console.log(err);
+        return;
+      }
       var size = stdout.trim();
       var re = /.+, ([\d]+).+/;
       var match = re.exec(size);
@@ -123,23 +136,49 @@ function finishOutput(err, stdout, stderr) {
   console.log("Done.");
 }
 
-getDeviceSize(device, function(size) {
-  console.log(size);
-  var fmbr = generate_fmbr(size/sector_size, 255, 63);
-  var fmbr_val = fmbr[0];
-  var maxlba = fmbr[1];
+function ask(question, format, callback) {
+  var stdin = process.stdin, stdout = process.stdout;
 
-  var fd = fs.openSync(device, "w");
-  console.log("Writing MBR...");
-  fs.writeSync(fd, fmbr_val);
-  console.log("Done.");
-  console.log("Cleaning first 4096 sectors....");
-  for (var i = 0; i < 4096; i++) {
-    fs.writeSync(fd, repeat(std.pack("C", 0), sector_size));
+  stdin.resume();
+  stdout.write(question + ": ");
+
+  stdin.once('data', function(data) {
+    data = data.toString().trim();
+
+    if (format.test(data)) {
+      callback(data);
+    } else {
+      stdout.write("It should match: "+ format +"\n");
+      ask(question, format, callback);
+    }
+  });
+}
+
+ask("Are you sure you wish to format " + device + " to UDF?", /.+/, function(answer) {
+  if (answer.toLowerCase() === "yes") {
+    getDeviceSize(device, function(size) {
+      console.log(size);
+      var fmbr = generate_fmbr(size/sector_size, 255, 63);
+      var fmbr_val = fmbr[0];
+      var maxlba = fmbr[1];
+
+      var fd = fs.openSync(device, "w");
+      console.log("Writing MBR...");
+      fs.writeSync(fd, fmbr_val);
+      console.log("Done.");
+      console.log("Cleaning first 4096 sectors....");
+      for (var i = 0; i < 4096; i++) {
+        fs.writeSync(fd, repeat(std.pack("C", 0), sector_size));
+      }
+      console.log("Done.");
+      fs.close(fd);
+
+      console.log("Creating " + maxlba + "-sector UDF v2.01 filesystem with label '" + label + "' on " + device + " using " + udf.type);
+      makeUDF(maxlba);
+    });
+  } else {
+    console.log("No operations were done. Exiting.");
+    process.exit();
   }
-  console.log("Done.");
-  fs.close(fd);
-
-  console.log("Creating " + maxlba + "-sector UDF v2.01 filesystem with label '" + label + "' on " + device + " using " + udf.type);
-  makeUDF(maxlba);
 });
+
