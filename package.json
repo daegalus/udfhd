@@ -14,8 +14,8 @@
     }
   ],
   "dependencies": {
-    "std": "*",
-    "yargs": "*"
+    "std": "^0.1.40",
+    "yargs": "^7.0.2"
   },
   "homepage": "https://github.com/Daegalus/udfhd",
   "licenses": [{ "type": "MIT" }]
