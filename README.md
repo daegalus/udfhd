@@ -1,5 +1,7 @@
 ## udfhd
 
+[![Join the chat at https://gitter.im/Daegalus/udfhd](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/Daegalus/udfhd?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 A tool to create a UDF hard drive or usb drive that will be properly
 mounted on Windows, OSX, and Linux.
 
